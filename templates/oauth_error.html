@@ -1,0 +1,30 @@
+<!doctype html>
+    <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>
+                CircleCheckTool
+            </title>
+        </head>
+        <body>
+        <h1>CircleCheckTool</h1>
+        <h1>
+        Something wrong.
+        </h1>
+        {% if error == 0 %}
+        <p>認証に失敗しました……</p>
+        {% elif error == 1 %}
+        <p>back, and try again…</p>
+        {% endif %}
+        <p><a href="https://circle-check-app.herokuapp.com/">戻る</a></p>
+        </body>
+      <footer>
+        <small>
+          This application is created by <a href="https://twitter.com/annmitsu456">あんみつ</a>
+          <br>このアプリケーションは卒業研究の一環として製作しているサークルチェックツールです。
+          <br>初心者の拙いプログラミングによるツールのため、参考程度にご利用ください。
+          <br>このツールの利用によって生じた損害につきましては一切の責任を負いません。
+          <br>フィードバックはにゃぬき(<a href="https://twitter.com/nyanuki333">@nyanuki333</a>)までお願い致します。
+        </small>
+      </footer>
+    </html>

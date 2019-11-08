@@ -1,0 +1,58 @@
+<!doctype html>
+    <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>
+                CircleCheckTool
+            </title>
+        </head>
+        <body>
+        <h1>CircleCheckTool</h1>
+        <!-- apiが存在しない(未認証)とき -->
+        {% if api == False %}
+        <!-- 認証ページ・使い方ページへのリンク -->
+        <p><a href="{{ url_for('twitter_auth') }}">連携アプリ認証</a></p>
+        <p><a href="{{ url_for('how_to_use') }}">使い方のページへ</a></p>
+        <!-- apiが存在する(認証済み)とき -->
+        {% else %}
+            <!-- 読み込まれたファイルが存在しないまたは形式がxlsxでないとき -->
+            {% if error == 1 %}
+                <p>error!ファイルが存在しないか、形式が違います！</p>
+            <!-- 読み込まれたファイル名に日本語が含まれているとき -->
+            {% elif error == 2 %}
+                <p>ファイル名に日本語が含まれています</p>
+            <!-- APIのリクエスト回数上限時 -->
+            {% elif error == 3 %}
+                <p>APIのリクエスト回数制限を超えました……しばらく待ってからやり直してください……</p>
+            <!-- 読み込まれたxlsxファイルのマップ入力がないとき -->
+            {% elif error == 4 %}
+                <p>マップまたはサークルリストに何も入力されていないようです…</p>
+            {% endif %}
+        <h2>
+        規定のxlsx形式ファイルを選択し、イベント名、キャラクター名(複数の場合は空白で区切る)を入力してアップロードしてください。
+        <br>コミックマーケットを対象とする場合は、加えていずれかの曜日・日にちを入力してください。
+        <br>この作業にはしばらく時間がかかることがあります。
+        </h2>
+        <p><a href="{{ url_for('download_1') }}">テンプレートダウンロード(スペース番号にabがない場合)</a></p>
+        <p><a href="{{ url_for('download_2') }}">テンプレートダウンロード(スペース番号にabがある場合)</a></p>
+        <!-- ファイル・テキスト送信用フォーム -->
+        <form method = post enctype = multipart/form-data>
+        <p><input type=file name = file>
+        <p>イベント名<input name="events" type="text" size="50" value="例)コミックマーケット99 C99">
+        <p>キャラクター名<input name="character" type="text" size="50" value="例)東方 艦これ">
+        <p>曜日・日にち(コミックマーケットの場合)<input name="etc" type="text" size="50" value="例)月曜日 1日目">
+        <br>※コミックマーケット以外のときは空欄にしてください
+        <p><input type = submit value = 検索する>
+        </form>
+        {% endif %} 
+        </body>
+      <footer>
+        <small>
+          This application is created by <a href="https://twitter.com/annmitsu456">あんみつ</a>
+          <br>このアプリケーションは卒業研究の一環として製作しているサークルチェックツールです。
+          <br>初心者の拙いプログラミングによるツールのため、参考程度にご利用ください。
+          <br>このツールの利用によって生じた損害につきましては一切の責任を負いません。
+          <br>フィードバックはにゃぬき(<a href="https://twitter.com/nyanuki333">@nyanuki333</a>)までお願い致します。
+        </small>
+      </footer>
+    </html>

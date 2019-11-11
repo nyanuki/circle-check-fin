@@ -214,6 +214,7 @@ def twitter_auth(): # 認証
         return render_template("oauth_error.html", error = 0) #認証時エラーページ
     
     logging.info("---- API認証終了 ----")
+    app.config["AUTH"] = auth #OAuthHandlerの保存
     return redirect(redirect_url) # redirect_urlのURLにリダイレクトする
 
 @app.route('/download_1', methods=['GET']) #GET以外のリクエストを拒否
@@ -269,8 +270,8 @@ def get_api():
     if token is None or verifier is None: #request_tokenまたはoauth_verifierがないとき
         return False # 未認証ならFalseを返す
     
-    # tweepy でアプリのOAuth認証を行う
-    auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK_URL)
+    #OAuthHandlerの読み込み
+    auth = app.config["AUTH"]
 
     # Access token, Access token secret を取得．
     auth.request_token = token

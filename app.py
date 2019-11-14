@@ -79,7 +79,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                 tweet = []
                 
                 #検索条件の指定
-                if (not request.form["events"]) or (not request.form["character"]):
+                if request.form["events"] == "" or request.form["character"] == "":
                     render_template("index.html", api=app.config['API'], error=3)
                     
                 event = "(" + request.form["events"].replace("　"," ").replace(" "," OR ") + ")"     #イベント名入力(ORで接続)

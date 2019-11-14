@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 
-# ログ用
+# ログ確認用のモジュール
 import logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
+# OS依存の機能を扱うモジュール
 import os
+# TwitterAPIを扱うモジュール
 import tweepy
+# EXCELファイルをPythonで扱うモジュール
 import openpyxl as op
+# 正規表現を扱うモジュール
 import re
 
 from flask import Flask, request, redirect, render_template, make_response, session
-# ファイル名をチェックする関数
+# ファイル名をチェックするモジュール
 from werkzeug.utils import secure_filename
 
 # カラープリセット
@@ -21,7 +25,7 @@ color = {0:"ff7f7f", 1:"ff7fbf", 2:"ff7fff", 3:"bf7fff", 4:"7f7fff",
          20:"ffff00", 21:"ff7f00", 22:"fcc800", 23:"9cbb1c", 24:"00a960"}
 # 色参考https://www.colordic.org/p/
 
-#--------初期設定--------
+#*--------初期設定--------*
 # Consumer Key
 CONSUMER_KEY = os.environ["CONSUMER_KEY"]
 # Consumer Secret
@@ -45,7 +49,7 @@ app.secret_key = os.environ["SECRET_KEY"]
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['DEFAULT_FOLDER'] = DEFAULT_FOLDER 
 
-# rootページ
+#-------- rootページ --------
 @app.route('/', methods=['GET', 'POST']) # GETとPOSTのみ
 def index(): # rootページ読み込み時にindex()を実行する
     if request.method == "GET": # リクエストメソッドがGETのとき(twitter認証関連)
@@ -75,11 +79,14 @@ def index(): # rootページ読み込み時にindex()を実行する
                 tweet = []
                 
                 #検索条件の指定
+                if (not request.form["events"]) or (not request.form["character"]):
+                    render_template("index.html", api=app.config['API'], error=3)
+                    
                 event = "(" + request.form["events"].replace("　"," ").replace(" "," OR ") + ")"     #イベント名入力(ORで接続)
                 character = request.form["character"].replace("　"," ").strip(" ").split(" ")        #キャラ名入力(全角空白を半角にし、両端の空白を削除、空白で区切りリスト化)
-                if request.form["etc"]:# コミケのとき
-                    etc = "(" + request.form["etc"].replace("　"," ").replace(" "," OR ") + ")"          #曜日・日にち入力(コミックマーケット用)
-                else: # コミケでないとき
+                if request.form["etc"]:# 日を跨ぐ即売会のとき
+                    etc = "(" + request.form["etc"].replace("　"," ").replace(" "," OR ") + ")"          #曜日・日にち入力(日を跨ぐ即売会用)
+                else: # 日を跨ぐ即売会でないとき
                     etc = ""
                     
                 for chara in character:
@@ -118,20 +125,19 @@ def index(): # rootページ読み込み時にindex()を実行する
                                     
                     #API制限時処理
                     except tweepy.TweepError:
-                        return render_template("index.html", api=app.config['API'], error=3)
+                        return render_template("index.html", api=app.config['API'], error=4)
                 
                 
-                #スペース番号の抽出
-                #pattern = re.compile("[a-zA-Zぁ-んァ-ヶ]-?[0-9]{2}?")                  #正規表現コンパイル
-                pattern = re.compile("[a-zA-Zぁ-んァ-ヶ]-?[0-9]{2}[ab]?")               #ab対応ver
-                pattern_name = re.compile("サークル名?[「【『：:][\w\W]+?[」】』\n]")         #サークル名コンパイル
+                #正規表現のコンパイル
+                num_pattern = re.compile("[a-zA-Zぁ-んァ-ヶ]-?[0-9]{2}[ab]?")             #スペース番号正規表現コンパイル
+                circle_pattern = re.compile("サークル名?[「【『：:][\w\W]+?[」】』\n]")         #サークル名正規表現コンパイル
                 
                 #番号格納用
                 No = []
                 #サークル番号, ユーザー名, ユーザーID, サークル名, キャラクター名, 抽出元URL
                 
                 #パターンマッチング
-                No = pattern_match(tweet, pattern, pattern_name, No)
+                No = pattern_match(tweet, num_pattern, circle_pattern, No)
                 
                 #エクセル上での処理
                 #ワークブックの読み込み
@@ -144,22 +150,22 @@ def index(): # rootページ読み込み時にindex()を実行する
                 #マップ上にないスペース番号のサークル情報を削除する
                 map_No = [] #マップ上のスペース番号リスト
                 
-                #マップ上のスペース番号の取得(ついでに罫線も設定しよう!)
+                #マップ上のスペース番号の取得(同時にに罫線も設定する)
                 try:
-                    #罫線のフォーマット
+                    #罫線のフォーマット(黒の細線)
                     border = op.styles.borders.Border(top=op.styles.borders.Side(style='thin', color='000000'), 
                                       bottom=op.styles.borders.Side(style='thin', color='000000'), 
                                       left=op.styles.borders.Side(style='thin', color='000000'),
                                       right=op.styles.borders.Side(style='thin', color='000000'))
                     for ws1_row in ws1:
                         for ws1_cell in ws1_row:
-                            if ws1_cell.value == None:  #セルの値Noneのとき
+                            if ws1_cell.value == None:  #セルの値がNoneのとき
                                 continue
                             else:                       #セルの値が存在するとき
                                 ws1_cell.border = border
                                 map_No.append(ws1_cell.value)
                 except: #マップに何も入力されていないとき
-                    return render_template("index.html", api=app.config['API'], error = 4)
+                    return render_template("index.html", api=app.config['API'], error = 5)
                 
                 No_list = [] #修正後のサークルリスト
                 #マップ上のスペース番号のみを残す
@@ -167,7 +173,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                     if re.sub("[ab]", "", num[0]) in map_No: #マップ上に番号が存在したら
                         No_list.append(No[i])
                 
-                #サークルリストをシートに追加(TwitterIDからハイパーリンクも貼る)
+                #サークルリストをシートに追加
                 for i, row in enumerate(No_list):
                     ws2.append(row)                                                             #サークルリストの追加
                     ws2.cell(row = i+2, column = 3).hyperlink = "https://twitter.com/" + row[2] #ハイパーリンクの設定(ユーザーURL)
@@ -175,7 +181,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                         
                     
                 #シートの書式設定
-                sheet_format(ws1, ws2)
+                sheet_format(ws2)
                 
                 #キャラクター一覧の取得
                 #キャラクター一覧とスペース番号を紐付けする
@@ -198,18 +204,18 @@ def index(): # rootページ読み込み時にindex()を実行する
         except op.utils.exceptions.InvalidFileException:    #ファイル名が日本語のとき
             return render_template("index.html", api=api, error = 2)  
 
-# 認証用ページ
+#-------- 認証用ページ --------
 @app.route('/twitter_auth', methods=['GET']) # GET以外のリクエストを拒否
 def twitter_auth(): # 認証
     # tweepy でアプリのOAuth認証を行う
     logging.info("---- API認証開始 ----")
+    #OAuthHandlerインスタンスの作成
     auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK_URL)
     try:
         # 連携アプリ認証用の URL を取得
         redirect_url = auth.get_authorization_url()
-        # 認証後に必要な request_token を session に保存
+        # 認証後に必要な request_token を セッション に保存
         session['request_token'] = auth.request_token
-        # HTMLではデータの保持がされない→ログイン情報をFlaskではcookieを使って保存している
     except tweepy.TweepError:
         return render_template("oauth_error.html", error = 0) #認証時エラーページ
     
@@ -217,39 +223,26 @@ def twitter_auth(): # 認証
     app.config["AUTH"] = auth #OAuthHandlerの保存
     return redirect(redirect_url) # redirect_urlのURLにリダイレクトする
 
+#-------- テンプレートファイルダウンロードページ1 --------
 @app.route('/download_1', methods=['GET']) #GET以外のリクエストを拒否
 def download_1():
     #ファイルの出力
-    #responseオブジェクトを作る
-    response = make_response()   
-    #ダウンロードデータをレスポンスオブジェクトのdataに設定 ここではファイルから読み込んだバイナリデータを設定
-    response.data = open(os.path.join(app.config['DEFAULT_FOLDER'], "Input_file.xlsm"), "rb").read()
-    #レスポンスヘッダは設定されないためContent-Disposition: attachmentヘッダを手動で設定
-    #attachment:ファイルのダウンロードタブを表示 inline:Webページ上で表示
-    response.headers['Content-Disposition'] = 'attachment; filename=' + "Input_file.xlsm"
-    #レスポンスオブジェクトのmimetypeにダウンロードファイルのmimetypeを設定し、作成したレスポンスオブジェクトを戻り値として返却
-    response.mimetype = XLSX_MIMETYPE
+    response = download("Input_file.xlsm")
     return response
 
+#-------- テンプレートファイルダウンロードページ2 --------
 @app.route('/download_2', methods=['GET']) #GET以外のリクエストを拒否
 def download_2():
     #ファイルの出力
-    #responseオブジェクトを作る
-    response = make_response()   
-    #ダウンロードデータをレスポンスオブジェクトのdataに設定 ここではファイルから読み込んだバイナリデータを設定
-    response.data = open(os.path.join(app.config['DEFAULT_FOLDER'], "Input_file2.xlsm"), "rb").read()
-    #レスポンスヘッダは設定されないためContent-Disposition: attachmentヘッダを手動で設定
-    #attachment:ファイルのダウンロードタブを表示 inline:Webページ上で表示
-    response.headers['Content-Disposition'] = 'attachment; filename=' + "Input_file2.xlsm"
-    #レスポンスオブジェクトのmimetypeにダウンロードファイルのmimetypeを設定し、作成したレスポンスオブジェクトを戻り値として返却
-    response.mimetype = XLSX_MIMETYPE
+    response = download("Input_file2.xlsm")
     return response
 
+#-------- 使い方のページ --------
 @app.route('/how_to_use', methods=['GET']) #GET
 def how_to_use():
     return render_template("how_to_use.html")
 
-#--------拡張子の確認--------
+#----* 拡張子の確認 *----
 def allwed_file(filename):
     # .があるかどうかのチェックと、拡張子の確認
     # OKなら１、だめなら0
@@ -258,7 +251,7 @@ def allwed_file(filename):
     #rsplit("区切る文字", 区切る数):文字列を後ろから指定文字で区切る filename.png => ["filename", "png"]
     #lower():小文字にする
 
-#---------API取得----------
+#----* API取得 *----
 def get_api():
     # request_token と oauth_verifier のチェック
     token = session.pop('request_token', None)
@@ -287,7 +280,7 @@ def get_api():
     app.config['API']=api 
     
     return api
-#------------ファイルのアップロード------------
+#----* ファイルのアップロード *----
 def upload():
     # リクエストがポストかどうかの判別
     if request.method == 'POST':
@@ -316,7 +309,7 @@ def upload():
             return None
         
             
-#------------ファイルのダウンロード---------------
+#----* ファイルのダウンロード *----
 def download(filename):
     #ファイルの出力
     #responseオブジェクトを作る
@@ -330,13 +323,13 @@ def download(filename):
     response.mimetype = XLSX_MIMETYPE
     return response
 
-#-------------------パターンマッチング--------------------
-def pattern_match(tweet, pattern, pattern_name, No): #引数(ツイートリスト,　番号パターン, サークル名パターン,　#番号格納用)
+#----* パターンマッチング *----
+def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイートリスト,　番号パターン, サークル名パターン,　サークル情報リスト)
     uniq_no = [] #被りチェック用
     for twe in tweet:
-        circle_num1 = pattern.findall(twe[1])                           #取得ツイートのユーザー名からスペース番号を抽出
-        circle_num2 = pattern.findall(twe[2])                           #取得ツイートからスペース番号を抽出
-        circle_name = circle_name_check(pattern_name, twe[2],twe[5])    #取得ツイートのテキストまたはプロフィールからサークル名を抽出
+        circle_num1 = num_pattern.findall(twe[1])                           #取得ツイートのユーザー名からスペース番号を抽出
+        circle_num2 = num_pattern.findall(twe[2])                           #取得ツイートからスペース番号を抽出
+        circle_name = circle_name_check(circle_pattern, twe[2],twe[5])      #取得ツイートのテキストまたはプロフィールからサークル名を抽出
         
         if len(circle_num1) == 0:                                   #ユーザー名から検出されなかったとき
             if len(circle_num2) == 1:                               #取得ツイートから1つだけ検出
@@ -381,9 +374,9 @@ def pattern_match(tweet, pattern, pattern_name, No): #引数(ツイートリス�
     
     return No
 
-#-------------サークルの名前を検出する------------------
+#----* サークルの名前を検出する *----
 def circle_name_check(pattern, text, profile): #引数(パターン、マッチング元(ツイート), マッチング元(プロフィール))
-    circle_name = re.search(pattern, text)                   #ツイートからマッチング
+    circle_name = re.search(pattern, text) #ツイートからマッチング
     if circle_name: # マッチしたとき
         circle_name = re.sub("サークル名?[「【『：:]|[」】』\n]", "", circle_name.group())     # サークル名のみ抽出
     else: # ツイートからマッチしなかったとき
@@ -395,7 +388,7 @@ def circle_name_check(pattern, text, profile): #引数(パターン、マッチ�
     
     return circle_name
 
-#-------------キャラクター一覧の取得--------------------
+#----* キャラクター一覧の取得 *----
 def chara_set(ws2):
     chara_list = [] #キャラクター一覧格納用
     for i,chara in enumerate(list(ws2.columns)[4]):
@@ -403,27 +396,27 @@ def chara_set(ws2):
             continue
         
         elif chara.value not in chara_list:
-            chara_list.append(chara.value)   #リストからキャラクター一覧の取得
+            chara_list.append(chara.value)  #リストからキャラクター一覧の取得
                         
     #色付け準備
-    space_list = [] #スペース番号用リスト
+    space_list = []                         #スペース番号用リスト
     for chara_name in chara_list: #chara_name:キャラクター名
-        exlist = []     #一時管理用リスト
+        exlist = []                         #一時管理用リスト
                     
-        for cell in list(ws2.columns)[4]:    #3列目(キャラリスト)の要素を取得
+        for cell in list(ws2.columns)[4]:   #3列目(キャラリスト)の要素を取得
             if cell.value == None:          #取得したセルの値がNoneのとき
                 continue
-            elif cell.value == chara_name:             #要素がキャラ名と等しいとき
+            elif cell.value == chara_name:  #要素がキャラ名と等しいとき
                 exlist.append(ws2.cell(row = cell.row, column = 1).value)    
                 #そのセルの1列目(スペース番号リスト)の要素を取得してリストに追加
                 #セルオブジェクト.row:そのセルの行番号を取得
                     
-        space_list.append(exlist)   #あるキャラのリストをスペース番号リストに追加(二次元リスト)
+        space_list.append(exlist)           #あるキャラのリストをスペース番号リストに追加(二次元リスト)
     
-    return(space_list)
+    return space_list
 
-#---------------シートの書式設定-----------------------
-def sheet_format(ws1, ws2):
+#----* シートの書式設定 *----
+def sheet_format(ws2):
     #セルに罫線をつける/列幅を調整する
     #罫線のフォーマット
     border = op.styles.borders.Border(top=op.styles.borders.Side(style='thin', color='000000'), 
@@ -448,7 +441,7 @@ def sheet_format(ws1, ws2):
         #列幅の変更 シート.column_dimensions[列番号(アルファベット)].width = 列幅
         #op.utils.get_column_letter(列番号)列番号をアルファベットに変換
 
-#-------------色付け------------------
+#----* 色付け *----
 def coloring(space_list, ws1, ws2): #space_list:キャラクターごとのスペース番号リスト, ws1,ws2:作業シート
     for i,chara in enumerate(space_list): #キャラクターごとのスペース番号リストを取得
         #色→順番に選択する、剰余によって規定数を超えてもループするようにする
@@ -464,31 +457,24 @@ def coloring(space_list, ws1, ws2): #space_list:キャラクターごとのス�
                         #マップに色付け        
                         for ws1_col in ws1.columns:      
                             for ws1_cell in ws1_col:        
-                               if ws1_cell.value == re.sub("[ab]", "", cell): #ab対応ver.
+                               if ws1_cell.value == re.sub("[ab]", "", cell):
                                #if ws1_cell.value == cell:  #マップ上の番号とリストの番号が一致したら
                                
-                                    if "b" in cell:
-                                        ws1.cell(row = ws1_cell.row, column = ws1_cell.column + 1).fill = fill
-                                        add_comment(ws1.cell(row = ws1_cell.row, column = ws1_cell.column + 1), ws2_col0.row, ws2)
-                                    else:
-                                        ws1_cell.fill = fill
-                                        add_comment(ws1_cell, ws2_col0.row, ws2)
-                                    """
-                                    ws1_cell.fill = fill    #そのセルを色付け
-                                                
-                                    #マップにコメントでサークル情報の付与
-                                    add_comment(ws1_cell, ws2_col0.row, ws2)   
-                                    """
+                                    if "b" in cell: #スペース番号の机番号がbのとき
+                                        ws1.cell(row = ws1_cell.row, column = ws1_cell.column + 1).fill = fill                      #その1つ右のセルを色付け
+                                        add_comment(ws1.cell(row = ws1_cell.row, column = ws1_cell.column + 1), ws2_col0.row, ws2)  #マップにコメントでサークル情報の付与
+                                    else: #スペース番号の机番号がaまたは机番号がないとき
+                                        ws1_cell.fill = fill                        #そのセルを色付け
+                                        add_comment(ws1_cell, ws2_col0.row, ws2)    #マップにコメントでサークル情報の付与
 
-
-#------------------コメント付与---------------
-def add_comment(cell, row, ws): 
+#----* コメント付与 *----
+def add_comment(cell, circleinfo_row, ws2): 
     #cell:コメントを付けるセルオブジェクト circleinfo_row:情報元行番号 ws:情報元シート
     #マップにコメントでサークル情報の付与
-    cell.comment = op.comments.Comment("Writer:" + ws.cell(row = row, column = 2).value \
-                                      + "\nTwitter:" + ws.cell(row = row, column = 3).value \
-                                      + "\nCircle:" + ws.cell(row = row, column = 4).value \
-                                      + "\nchara:" + ws.cell(row = row, column = 5).value, "")
+    cell.comment = op.comments.Comment("Writer:" + ws2.cell(row = circleinfo_row, column = 2).value \
+                                      + "\nTwitter:" + ws2.cell(row = circleinfo_row, column = 3).value \
+                                      + "\nCircle:" + ws2.cell(row = circleinfo_row, column = 4).value \
+                                      + "\nchara:" + ws2.cell(row = circleinfo_row, column = 5).value, "")
                                       #op.comments.Comment("コメント", "コメント作成者")
                                       #今回は
                                       #Writter:(作家)
@@ -499,5 +485,7 @@ def add_comment(cell, row, ws):
     cell.comment.width = 500 #コメント幅(横)の設定
     cell.comment.height  = 100 #コメント幅(縦)の設定 
 
+
+#----** アプリの実行 **----
 if __name__ == "__main__":
-    app.run(debug=True) #アプリの実行
+    app.run(debug=True)

@@ -226,15 +226,33 @@ def twitter_auth(): # 認証
 #-------- テンプレートファイルダウンロードページ1 --------
 @app.route('/download_1', methods=['GET']) #GET以外のリクエストを拒否
 def download_1():
+    filename = "Input_file.xlsm"
     #ファイルの出力
-    response = download("Input_file.xlsm")
+    #responseオブジェクトを作る
+    response = make_response()   
+    #ダウンロードデータをレスポンスオブジェクトのdataに設定 ここではファイルから読み込んだバイナリデータを設定
+    response.data = open(os.path.join(app.config['DEFAULT_FOLDER'], filename), "rb").read()
+    #レスポンスヘッダは設定されないためContent-Disposition: attachmentヘッダを手動で設定
+    #attachment:ファイルのダウンロードタブを表示 inline:Webページ上で表示
+    response.headers['Content-Disposition'] = 'attachment; filename=' + filename
+    #レスポンスオブジェクトのmimetypeにダウンロードファイルのmimetypeを設定し、作成したレスポンスオブジェクトを戻り値として返却
+    response.mimetype = XLSX_MIMETYPE
     return response
 
 #-------- テンプレートファイルダウンロードページ2 --------
 @app.route('/download_2', methods=['GET']) #GET以外のリクエストを拒否
 def download_2():
+    filename = "Input_file2.xlsm"
     #ファイルの出力
-    response = download("Input_file2.xlsm")
+    #responseオブジェクトを作る
+    response = make_response()   
+    #ダウンロードデータをレスポンスオブジェクトのdataに設定 ここではファイルから読み込んだバイナリデータを設定
+    response.data = open(os.path.join(app.config['DEFAULT_FOLDER'], filename), "rb").read()
+    #レスポンスヘッダは設定されないためContent-Disposition: attachmentヘッダを手動で設定
+    #attachment:ファイルのダウンロードタブを表示 inline:Webページ上で表示
+    response.headers['Content-Disposition'] = 'attachment; filename=' + filename
+    #レスポンスオブジェクトのmimetypeにダウンロードファイルのmimetypeを設定し、作成したレスポンスオブジェクトを戻り値として返却
+    response.mimetype = XLSX_MIMETYPE
     return response
 
 #-------- 使い方のページ --------

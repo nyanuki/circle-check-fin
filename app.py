@@ -90,7 +90,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                     etc = ""
                     
                 for chara in character:
-                    query = event + " " + chara + " 新刊 -RT -filter:replies " + etc  #検索ワード生成
+                    query = event + " " + chara + " 新刊 -RT -filter:replies " + etc  #検索文字列群生成
                 
                     logging.info("Query:" + query)
                 
@@ -198,10 +198,10 @@ def index(): # rootページ読み込み時にindex()を実行する
                 response = download(filename)   #ダウンロード用のレスポンスの作成
                 return response                 #ダウンロード用のファイルのダウンロードタブ表示
         
-            else:   #ファイル名が存在しない(というよりxlsx形式じゃない)とき
+            else:   #ファイル名が存在しないまたはxlsx形式でないとき
                 return render_template("index.html", api=api, error = 1)
             
-        except op.utils.exceptions.InvalidFileException:    #ファイル名が日本語のとき
+        except op.utils.exceptions.InvalidFileException:    #ファイル名に2バイト文字が含まれるとき
             return render_template("index.html", api=api, error = 2)  
 
 #-------- 認証用ページ --------
@@ -277,7 +277,8 @@ def get_api():
     # tweepy で Twitter API にアクセス
     api = tweepy.API(auth)
     #Twitter_APIの保存
-    app.config['API']=api 
+    if api:
+        app.config['API']=api 
     
     return api
 #----* ファイルのアップロード *----

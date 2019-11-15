@@ -281,8 +281,8 @@ def get_api():
     if token is None or verifier is None: #request_tokenまたはoauth_verifierがないとき
         return False # 未認証ならFalseを返す
     
-    #OAuthHandlerの読み込み
-    auth = app.config["AUTH"]
+    #OAuthHandlerインスタンスの作成
+    auth = auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK_URL)
 
     # Access token, Access token secret を取得．
     auth.request_token = token

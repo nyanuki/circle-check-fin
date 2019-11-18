@@ -1,3 +1,4 @@
+<!-- メインページ -->
 <!doctype html>
     <html>
         <head>
@@ -36,14 +37,15 @@
         <br>コミックマーケットを対象とする場合は、加えていずれかの曜日・日にちを入力してください。
         <br>この作業にはしばらく時間がかかることがあります。
         </h2>
+        <!-- テンプレートファイル -->
         <p><a href="{{ url_for('download_1') }}">テンプレートダウンロード(スペース番号にabがない場合)</a></p>
         <p><a href="{{ url_for('download_2') }}">テンプレートダウンロード(スペース番号にabがある場合)</a></p>
         <!-- ファイル・テキスト送信用フォーム -->
         <form method = post enctype = multipart/form-data>
         <p><input type=file name = file>
         <p>イベント名<input name="events" type="text" size="50" value="例)コミックマーケット99 C99">
-        <p>キャラクター名<input name="character" type="text" size="50" value="例)東方 艦これ">
-        <p>曜日・日にち(コミックマーケットの場合)<input name="etc" type="text" size="50" value="例)月曜日 1日目">
+        <p>キャラクター/属性名<input name="character" type="text" size="50" value="例)東方 艦これ">
+        <p>曜日・日にち(日を跨ぐイベントの場合)<input name="etc" type="text" size="50" value="例)月曜日 1日目">
         <br>※コミックマーケット以外のときは空欄にしてください
         <p><input type = submit value = 検索する>
         </form>

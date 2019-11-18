@@ -1,3 +1,4 @@
+<!-- 認証関連のエラーページ -->
 <!doctype html>
     <html>
         <head>
@@ -11,8 +12,10 @@
         <h1>
         Something wrong.
         </h1>
+        <!-- 認証失敗時 -->
         {% if error == 0 %}
         <p>認証に失敗しました……</p>
+        <!-- APIオブジェクトLost時 -->
         {% elif error == 1 %}
         <p>back, and try again…</p>
         {% endif %}

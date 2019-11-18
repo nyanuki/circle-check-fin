@@ -12,7 +12,7 @@ import tweepy
 import openpyxl as op
 # 正規表現を扱うモジュール
 import re
-
+#Flaskを扱うモジュール
 from flask import Flask, request, redirect, render_template, make_response, session
 # ファイル名をチェックするモジュール
 from werkzeug.utils import secure_filename
@@ -33,6 +33,7 @@ CONSUMER_SECRET =os.environ["CONSUMER_SECRET"]
 # Callback URL (認証後リダイレクトされるURL)
 CALLBACK_URL = 'https://circle-check-app.herokuapp.com/' # Heroku上
 # ファイルをダウンロードした際、クライアント側で適切にファイルを処理できるようにmimetypeを定義
+# mimetype:ファイル形式をサーバーに認識させるための識別子
 # 参考:https://docs.microsoft.com/ja-jp/previous-versions/office/office-2007-resource-kit/ee309278(v=office.12)
 XLSX_MIMETYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 # ファイルのアップロード先のディレクトリ
@@ -194,7 +195,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                 #ファイルの保存
                 wb.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))    #xlsxファイルを保存する 
                 
-                
+                logging.info("---- End ----")
                 response = download(filename)   #ダウンロード用のレスポンスの作成
                 return response                 #ダウンロード用のファイルのダウンロードタブ表示
         

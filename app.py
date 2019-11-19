@@ -25,6 +25,35 @@ color = {0:"ff7f7f", 1:"ff7fbf", 2:"ff7fff", 3:"bf7fff", 4:"7f7fff",
          20:"ffff00", 21:"ff7f00", 22:"fcc800", 23:"9cbb1c", 24:"00a960"}
 # 色参考https://www.colordic.org/p/
 
+# 抽出元ツイートインスタンス
+class Source_Tweet():
+    def __init__(self, user_screen_name, user_name, text, chara, source_url, description):
+        # ユーザーID、ユーザー名、ツイート本文テキスト、キャラクター名、抽出元URL、プロフィールテキスト
+        self.user_screen_name
+        self.user_name
+        self.text
+        self.chara
+        self.source_url
+        self.description
+
+# サークルインスタンス
+class Circle():
+    def __init__(self, num, user_name, user_screen_name, circle_name, chara, source_url):
+        # スペース番号、ユーザー名、ユーザーID、サークル名、キャラクター名、抽出元URL
+        self.num
+        self.user_name
+        self.user_screen_name
+        self.chara
+        self.source_url
+    
+    def return_list(self):
+        # 全ての要素をリストにして返す
+        return [self.num,
+                self.user_name,
+                self.user_screen_name,
+                self.chara,
+                self.source_url]
+
 #*--------初期設定--------*
 # Consumer Key
 CONSUMER_KEY = os.environ["CONSUMER_KEY"]
@@ -103,12 +132,12 @@ def index(): # rootページ読み込み時にindex()を実行する
                             #q:検索ワード("-RT"をつけることでRTを省ける) count:取得件数　lang:言語(日本語なら"ja") result_type:取得するツイート (recent時系列で取得) 
                             text = re.sub(r"(https?|ftp)(:\/\/[-_\.!~*\'()a-zA-Z0-9;\/?:\@&=\+\$,%#]+)", "" ,status.full_text) #URL部分を削除
                             #tweet:[ユーザーID, ユーザー名, ツイート本文, キャラクター名, ツイートURL, プロフ]
-                            tweet.append([status.user.screen_name, 
+                            tweet.append(Source_Tweet(status.user.screen_name, 
                                           status.user.name, 
                                           text, 
                                           chara, 
                                           "https://twitter.com/"+ status.user.screen_name.strip("@") + "/status/" + str(status.id),
-                                          status.user.description])
+                                          status.user.description))
                             tweet_id.append(status.id) #ツイートIDの取得 api.search.id
                             #ユーザーごとに2次元配列で格納　.user.screen_name:UserID .user.name:Username .text:Tweet user.description:プロフィール
                         
@@ -122,7 +151,12 @@ def index(): # rootページ読み込み時にindex()を実行する
                                     #max_id - 指定されたID以下の（つまり、古い）IDを持つステータスのみを返す
                                     #リスト名[-1] でリストの一番最後の要素を取得 
                                     text = re.sub(r"(https?|ftp)(:\/\/[-_\.!~*\'()a-zA-Z0-9;\/?:\@&=\+\$,%#]+)", "" ,status.full_text) #URL部分を削除
-                                    tweet.append(["@"+status.user.screen_name, status.user.name, text, chara, "https://twitter.com/"+ status.user.screen_name.strip("@") + "/status/" + str(status.id), status.user.description])
+                                    tweet.append(Source_Tweet(status.user.screen_name,
+                                                              status.user.name, 
+                                                              text,
+                                                              chara,
+                                                              "https://twitter.com/"+ status.user.screen_name.strip("@") + "/status/" + str(status.id),
+                                                              status.user.description))
                                     tweet_id.append(status.id)
                                     
                     #API制限時処理
@@ -150,7 +184,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                 ws2 = wb.worksheets[1]
                 
                 #マップ上にないスペース番号のサークル情報を削除する
-                map_No = [] #マップ上のスペース番号リスト
+                space_position = {} #マップ上のスペース番号の行列番号
                 
                 #マップ上のスペース番号の取得(同時にに罫線も設定する)
                 try:
@@ -165,21 +199,21 @@ def index(): # rootページ読み込み時にindex()を実行する
                                 continue
                             else:                       #セルの値が存在するとき
                                 ws1_cell.border = border
-                                map_No.append(ws1_cell.value)
+                                space_position[ws1_cell.value] = [ws1_cell.row, ws1_cell.column] #{"スペース番号":[行番号, 列番号]}
                 except: #マップに何も入力されていないとき
                     return render_template("index.html", api=app.config['API'], error = 5)
                 
                 No_list = [] #修正後のサークルリスト
                 #マップ上のスペース番号のみを残す
-                for i, num in enumerate(No):
-                    if re.sub("[ab]", "", num[0]) in map_No: #マップ上に番号が存在したら
-                        No_list.append(No[i])
+                for num in No:
+                    if re.sub("[ab]", "", num.num) in space_position: #マップ上に番号が存在したら
+                        No_list.append(num)
                 
                 #サークルリストをシートに追加
                 for i, row in enumerate(No_list):
-                    ws2.append(row)                                                             #サークルリストの追加
-                    ws2.cell(row = i+2, column = 3).hyperlink = "https://twitter.com/" + row[2] #ハイパーリンクの設定(ユーザーURL)
-                    ws2.cell(row = i+2, column = 6).hyperlink = row[5]                          #ハイパーリンクの設定(抽出元URL)
+                    ws2.append(row.return_list())                                                             #サークルリストの追加
+                    ws2.cell(row = i+2, column = 3).hyperlink = "https://twitter.com/" + row.user_screen_name #ハイパーリンクの設定(ユーザーURL)
+                    ws2.cell(row = i+2, column = 6).hyperlink = row.source_url                          #ハイパーリンクの設定(抽出元URL)
                         
                     
                 #シートの書式設定
@@ -187,11 +221,11 @@ def index(): # rootページ読み込み時にindex()を実行する
                 
                 #キャラクター一覧の取得
                 #キャラクター一覧とスペース番号を紐付けする
-                #[キャラ1[A01, A02...], キャラ2[B01, B02...], ...]のような構成
-                space_list = chara_set(ws2)
+                chara_dict = chara_set(ws2)[0]
+                space_list = chara_set(ws2)[1]
                     
                 #色付けをする
-                coloring(space_list, ws1, ws2)                                             
+                coloring(space_list, chara_dict, space_position, ws1, ws2)                                             
                 
                 #ファイルの保存
                 wb.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))    #xlsxファイルを保存する 
@@ -348,21 +382,21 @@ def download(filename):
 def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイートリスト,　番号パターン, サークル名パターン,　サークル情報リスト)
     uniq_no = [] #被りチェック用
     for twe in tweet:
-        circle_num1 = num_pattern.findall(twe[1])                           #取得ツイートのユーザー名からスペース番号を抽出
-        circle_num2 = num_pattern.findall(twe[2])                           #取得ツイートからスペース番号を抽出
-        circle_name = circle_name_check(circle_pattern, twe[2],twe[5])      #取得ツイートのテキストまたはプロフィールからサークル名を抽出
+        circle_num1 = num_pattern.findall(twe.user_name)                           #取得ツイートのユーザー名からスペース番号を抽出
+        circle_num2 = num_pattern.findall(twe.text)                           #取得ツイートからスペース番号を抽出
+        circle_name = circle_name_check(circle_pattern, twe.text, twe.description)      #取得ツイートのテキストまたはプロフィールからサークル名を抽出
         
         if len(circle_num1) == 0:                                   #ユーザー名から検出されなかったとき
             if len(circle_num2) == 1:                               #取得ツイートから1つだけ検出
                 if circle_num2[0].replace('-','') not in uniq_no:   #被りがなければ
                     uniq_no.append(circle_num2[0].replace('-',''))  #被りチェックリストに追加
                     #サークル情報を追加(スペース番号, ユーザー名, ユーザーID, サークル名, キャラクター名, 抽出元URL)
-                    No.append([circle_num2[0].replace('-',''),
-                               twe[1],
-                               twe[0],
+                    No.append(Circle(circle_num2[0].replace('-',''),
+                               twe.user_name,
+                               twe.user_screen_name,
                                circle_name,
-                               twe[3],
-                               twe[4]])
+                               twe.chara,
+                               twe.source_url))
                     
             else:                                                   #取得ツイートから複数検出または検出されなかったとき
                 continue                                            #抽出不可、次のツイートへ
@@ -371,7 +405,12 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
             if len(circle_num2) == 0:                               #取得ツイートから検出されなかったとき
                 if circle_num1[0].replace('-','') not in uniq_no:   #被りがなければ
                     uniq_no.append(circle_num1[0].replace('-',''))  #被りチェックリストに追加
-                    No.append([circle_num1[0].replace('-',''), twe[1], twe[0], circle_name, twe[3], twe[4]])
+                    No.append(Circle(circle_num1[0].replace('-',''), 
+                               twe.user_name,
+                               twe.user_screen_name,
+                               circle_name,
+                               twe.chara,
+                               twe.source_url))
                     
             else:                                                           #取得ツイートから複数検出または1つのみ検出
                 for num1 in circle_num1:                                    #ユーザー名のスペース番号
@@ -379,7 +418,12 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
                         if(num1.replace('-','') == num2.replace('-','')):   #ユーザー名とツイート本文のスペース番号を照合する(照合時、ハイフンを削除する)
                             if num1.replace('-','') not in uniq_no:         #被りがなければ
                                 uniq_no.append(num1.replace('-',''))        #被りチェックリストに追加
-                                No.append([num1.replace('-',''), twe[1], twe[0], circle_name, twe[3], twe[4]])   #一致する場合、リストに追加                    
+                                No.append(Circle(num1.replace('-',''),
+                               twe.user_name,
+                               twe.user_screen_name,
+                               circle_name,
+                               twe.chara,
+                               twe.source_url))   #一致する場合、リストに追加                    
                                 
         else:                                              #ユーザー名から複数検出
             if len(circle_num2) == 0:                      #取得ツイートから検出されなかったとき
@@ -391,7 +435,11 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
                         if(num1.replace('-','') == num2.replace('-','')):   #ユーザー名とツイート本文のスペース番号を照合する(照合時、ハイフンを削除する)
                             if num1.replace('-','') not in uniq_no:         #被りがなければ
                                 uniq_no.append(num1.replace('-',''))        #被りチェックリストに追加
-                                No.append([num1.replace('-',''), twe[1], twe[0], circle_name, twe[3], twe[4]])   #一致する場合、リストに追加
+                                No.append(Circle(num1.replace('-',''),twe.user_name,
+                               twe.user_screen_name,
+                               circle_name,
+                               twe.chara,
+                               twe.source_url))   #一致する場合、リストに追加
     
     return No
 
@@ -412,29 +460,30 @@ def circle_name_check(pattern, text, profile): #引数(パターン、マッチ�
 #----* キャラクター一覧の取得 *----
 def chara_set(ws2):
     chara_list = [] #キャラクター一覧格納用
-    for i,chara in enumerate(list(ws2.columns)[4]):
+    space_list = [] #サークルリスト格納用
+    for i,chara in enumerate(list(ws2.rows)):
         if i == 0:                          #初めの"Charater"というラベルを除外
             continue
         
-        elif chara.value not in chara_list:
-            chara_list.append(chara.value)  #リストからキャラクター一覧の取得
-                        
-    #色付け準備
-    space_list = []                         #スペース番号用リスト
-    for chara_name in chara_list: #chara_name:キャラクター名
-        exlist = []                         #一時管理用リスト
-                    
-        for cell in list(ws2.columns)[4]:   #3列目(キャラリスト)の要素を取得
-            if cell.value == None:          #取得したセルの値がNoneのとき
-                continue
-            elif cell.value == chara_name:  #要素がキャラ名と等しいとき
-                exlist.append(ws2.cell(row = cell.row, column = 1).value)    
-                #そのセルの1列目(スペース番号リスト)の要素を取得してリストに追加
-                #セルオブジェクト.row:そのセルの行番号を取得
-                    
-        space_list.append(exlist)           #あるキャラのリストをスペース番号リストに追加(二次元リスト)
+        else:
+            ws2_cells = list(chara)
+            #サークル情報の格納
+            space_list.append(Circle(ws2_cells[0], 
+                                     ws2_cells[1],
+                                     ws2_cells[2],
+                                     ws2_cells[3],
+                                     ws2_cells[4],
+                                     ws2_cells[5],))
+        
+            if ws2_cells[4] not in chara_list:
+                chara_list.append(ws2_cells[4])  #リストからキャラクター一覧の取得
     
-    return space_list
+    #キャラクターごとに色を決定        
+    chara_dict = {}
+    for j,chara_name in enumerate(chara_list):
+        chara_dict[chara_name] = color[i % len(color)]
+
+    return chara_dict, space_list
 
 #----* シートの書式設定 *----
 def sheet_format(ws2):
@@ -463,39 +512,38 @@ def sheet_format(ws2):
         #op.utils.get_column_letter(列番号)列番号をアルファベットに変換
 
 #----* 色付け *----
-def coloring(space_list, ws1, ws2): #space_list:キャラクターごとのスペース番号リスト, ws1,ws2:作業シート
-    for i,chara in enumerate(space_list): #キャラクターごとのスペース番号リストを取得
-        #色→順番に選択する、剰余によって規定数を超えてもループするようにする
-        fill = op.styles.PatternFill(patternType='solid', fgColor=color[i % len(color)])  #色付け用フォーマット
+def coloring(space_list, chara_dict, space_position,  ws1, ws2): #space_list:サークルリスト, chara_dict:キャラクターごとの色の対応リスト, space_position:スペース番号の行列番号対応, ws1,ws2:作業シート
+    #サークルリストの色付け
+    for i, rows in enumerate(ws2):
+        if i == 0: #1行目
+            continue
+        fill = op.styles.PatternFill(patternType='solid', fgColor = chara_dict[rows.cell.velue]) #色付け用フォーマット
+        for cell in rows:
+            cell.fill = fill #行の該当するセルを全て色付け
+    
+    #マップの色付け            
+    for circle in space_list:
+        fill = op.styles.PatternFill(patternType='solid', fgColor = chara_dict[circle.chara]) #色付け用フォーマット
+        
+        circle_num = re.sub("[ab]", "", circle.num) # abの削除
+        if "b" in circle_num:   #スペース番号に"b"が含まれているとき
+            ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1] + 1).fill = fill                   #色付け
+            add_comment(ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1] + 1), circle)          #コメント追加
+            ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1] + 1).hyperlink = circle.source_url #ハイパーリンク
             
-        for cell in chara: #スペース番号ごとの処理
-            #サークルリストに色付け                  
-            for ws2_col0 in list(ws2.columns)[0]: #1列目(スペース番号)
-                if ws2_col0.value == cell:  #リストのスペース番号と一致するセル
-                    for i in range(6): #その行を全て色付け
-                        ws2.cell(row = ws2_col0.row, column = i+1).fill = fill 
-                        
-                        #マップに色付け        
-                        for ws1_col in ws1.columns:      
-                            for ws1_cell in ws1_col:        
-                               if ws1_cell.value == re.sub("[ab]", "", cell):
-                               #if ws1_cell.value == cell:  #マップ上の番号とリストの番号が一致したら
-                               
-                                    if "b" in cell: #スペース番号の机番号がbのとき
-                                        ws1.cell(row = ws1_cell.row, column = ws1_cell.column + 1).fill = fill                      #その1つ右のセルを色付け
-                                        add_comment(ws1.cell(row = ws1_cell.row, column = ws1_cell.column + 1), ws2_col0.row, ws2)  #マップにコメントでサークル情報の付与
-                                    else: #スペース番号の机番号がaまたは机番号がないとき
-                                        ws1_cell.fill = fill                        #そのセルを色付け
-                                        add_comment(ws1_cell, ws2_col0.row, ws2)    #マップにコメントでサークル情報の付与
+        else:   #スペース番号に"a"が含まれているとき または 机番号の区別がないとき
+            ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1]).fill = fill                       #色付け
+            add_comment(ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1] + 1), circle)          #コメント追加
+            ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1]).hyperlink = circle.source_url     #ハイパーリンク
 
 #----* コメント付与 *----
-def add_comment(cell, circleinfo_row, ws2): 
-    #cell:コメントを付けるセルオブジェクト circleinfo_row:情報元行番号 ws:情報元シート
+def add_comment(cell, circleinfo): 
+    #cell:コメントを付けるセルオブジェクト circleinfo:情報元インスタンス 
     #マップにコメントでサークル情報の付与
-    cell.comment = op.comments.Comment("Writer:" + ws2.cell(row = circleinfo_row, column = 2).value \
-                                      + "\nTwitter:" + ws2.cell(row = circleinfo_row, column = 3).value \
-                                      + "\nCircle:" + ws2.cell(row = circleinfo_row, column = 4).value \
-                                      + "\nchara:" + ws2.cell(row = circleinfo_row, column = 5).value, "")
+    cell.comment = op.comments.Comment("Writer:" + circleinfo.user_name \
+                                      + "\nTwitter:" + circleinfo.user_screen_name \
+                                      + "\nCircle:" + circleinfo.circle_name \
+                                      + "\nchara:" + circleinfo.chara, "")
                                       #op.comments.Comment("コメント", "コメント作成者")
                                       #今回は
                                       #Writter:(作家)

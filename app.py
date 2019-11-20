@@ -17,6 +17,8 @@ from flask import Flask, request, redirect, render_template, make_response, sess
 # ファイル名をチェックするモジュール
 from werkzeug.utils import secure_filename
 
+import time
+
 # カラープリセット
 color = {0:"ff7f7f", 1:"ff7fbf", 2:"ff7fff", 3:"bf7fff", 4:"7f7fff",
          5:"7fbfff", 6:"7fffff", 7:"7fffbf", 8:"7fff7f", 9:"bfff7f",
@@ -114,6 +116,8 @@ def index(): # rootページ読み込み時にindex()を実行する
         
         try:
             if filename:                #ファイル名が存在すれば
+                logging.info("検索処理時間計測開始")
+                t1 = time.time() #処理時間計測(始まり)
                 #ツイート格納用
                 tweet = []
                 
@@ -230,7 +234,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                 for i, row in enumerate(No_list):
                     ws2.append(row.return_list())                                                             #サークルリストの追加
                     ws2.cell(row = i+2, column = 3).hyperlink = "https://twitter.com/" + row.user_screen_name #ハイパーリンクの設定(ユーザーURL)
-                    ws2.cell(row = i+2, column = 6).hyperlink = row.source_url                          #ハイパーリンクの設定(抽出元URL)
+                    ws2.cell(row = i+2, column = 6).hyperlink = row.source_url                                #ハイパーリンクの設定(抽出元URL)
                         
                     
                 #シートの書式設定
@@ -248,6 +252,11 @@ def index(): # rootページ読み込み時にindex()を実行する
                 
                 logging.info("---- End ----")
                 response = download(filename)   #ダウンロード用のレスポンスの作成
+                
+                t2 = time.time() #処理時間計測(終わり)
+                dif = t2 - t1
+                logging.info("検索処理時間：" + str(dif) + " 秒") #処理時間表示
+                
                 return response                 #ダウンロード用のファイルのダウンロードタブ表示
         
             else:   #ファイル名が存在しないまたはxlsx形式でないとき

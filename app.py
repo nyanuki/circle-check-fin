@@ -29,39 +29,42 @@ color = {0:"ff7f7f", 1:"ff7fbf", 2:"ff7fff", 3:"bf7fff", 4:"7f7fff",
 class Source_Tweet():
     def __init__(self, user_screen_name, user_name, text, chara, source_url, description):
         # ユーザーID、ユーザー名、ツイート本文テキスト、キャラクター名、抽出元URL、プロフィールテキスト
-        self.user_screen_name
-        self.user_name
-        self.text
-        self.chara
-        self.source_url
-        self.description
+        self.user_screen_name = user_screen_name
+        self.user_name = user_name
+        self.text = text
+        self.chara = chara
+        self.source_url = source_url
+        self.description = description
 
 # サークルインスタンス
 class Circle():
     def __init__(self, num, user_name, user_screen_name, circle_name, chara, source_url):
         # スペース番号、ユーザー名、ユーザーID、サークル名、キャラクター名、抽出元URL
-        self.num
-        self.user_name
-        self.user_screen_name
-        self.chara
-        self.source_url
+        self.num = num
+        self.user_name = user_name
+        self.user_screen_name = user_screen_name
+        self.circle_name = circle_name
+        self.chara = chara
+        self.source_url = source_url
     
     def return_list(self):
         # 全ての要素をリストにして返す
         return [self.num,
                 self.user_name,
                 self.user_screen_name,
+                self.circle_name,
                 self.chara,
                 self.source_url]
 
 #*--------初期設定--------*
 # Consumer Key
-CONSUMER_KEY = os.environ["CONSUMER_KEY"]
+#CONSUMER_KEY = os.environ["CONSUMER_KEY"]
 # Consumer Secret
-CONSUMER_SECRET =os.environ["CONSUMER_SECRET"]
+#CONSUMER_SECRET =os.environ["CONSUMER_SECRET"]
 # Callback URL (認証後リダイレクトされるURL)
+CALLBACK_URL = 'http://127.0.0.1:5000'
 #CALLBACK_URL = 'https://circle-check-app.herokuapp.com/' # Heroku上
-CALLBACK_URL = 'https://circle-check-app.azurewebsites.net' # azure上
+#CALLBACK_URL = 'https://circle-check-app.azurewebsites.net' # azure上
 # ファイルをダウンロードした際、クライアント側で適切にファイルを処理できるようにmimetypeを定義
 # mimetype:ファイル形式をサーバーに認識させるための識別子
 # 参考:https://docs.microsoft.com/ja-jp/previous-versions/office/office-2007-resource-kit/ee309278(v=office.12)
@@ -75,7 +78,12 @@ ALLOWED_EXTENSIONS = set(['xlsx'])
 # flaskの起動
 app = Flask(__name__)
 # flask の session を使うにはkeyを設定する必要がある．
-app.secret_key = os.environ["SECRET_KEY"]
+#app.secret_key = os.environ["SECRET_KEY"]
+
+app.secret_key='AHT90udsfHsdfKiHGD9dsfkjhewr'
+CONSUMER_KEY='bXsDEot4zEKY1DHnL8ovnQ87H'
+CONSUMER_SECRET='tJaJkBFIaYQgbHThwT2wluUUdIu0ONURaJQhQBsBir3uThNL4u'
+
 # フォルダディレクトリを保存
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['DEFAULT_FOLDER'] = DEFAULT_FOLDER 
@@ -121,6 +129,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                     etc = ""
                     
                 for chara in character:
+                    logging.info("start searching...")
                     query = event + " " + chara + " 新刊 -RT -filter:replies " + etc  #検索文字列群生成
                 
                     logging.info("Query:" + query)
@@ -142,11 +151,13 @@ def index(): # rootページ読み込み時にindex()を実行する
                             #ユーザーごとに2次元配列で格納　.user.screen_name:UserID .user.name:Username .text:Tweet user.description:プロフィール
                         
                         if len(tweet_id) == 0:  #もしツイートがなかったら(これでmax_idを指定するとエラーになる)
-                            continue            #次のキャラクターへ
+                            logging.info("No more tweets.")
                             
                         else:                   #ツイートがあれば追加で検索
                             #ツイート情報の追加取得(前のツイート取得の最後のmax_idより後ろのツイートを取得)
                             for i in range(9):
+                                logging.info("Again search...")
+                                tweet_id = [tweet_id[-1]]
                                 for status in api.search(q=query, lang='ja', result_type='recent', count=100, tweet_mode='extended', max_id=tweet_id[-1]-1): 
                                     #max_id - 指定されたID以下の（つまり、古い）IDを持つステータスのみを返す
                                     #リスト名[-1] でリストの一番最後の要素を取得 
@@ -158,12 +169,18 @@ def index(): # rootページ読み込み時にindex()を実行する
                                                               "https://twitter.com/"+ status.user.screen_name.strip("@") + "/status/" + str(status.id),
                                                               status.user.description))
                                     tweet_id.append(status.id)
-                                    
+                                
+                                logging.info(tweet_id)
+                                if tweet_id[-1] == tweet_id[0]:  #もしツイートがなかったら
+                                    logging.info("No more tweets.")
+                                    break
+                                
                     #API制限時処理
                     except tweepy.TweepError:
+                        logging.info("Limited.")
                         return render_template("index.html", api=app.config['API'], error=4)
                 
-                
+                logging.info("Searching end.")
                 #正規表現のコンパイル
                 num_pattern = re.compile("[a-zA-Zぁ-んァ-ヶ]-?[0-9]{2}[ab]?")             #スペース番号正規表現コンパイル
                 circle_pattern = re.compile("サークル名?[「【『：:][\w\W]+?[」】』\n]")         #サークル名正規表現コンパイル
@@ -221,8 +238,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                 
                 #キャラクター一覧の取得
                 #キャラクター一覧とスペース番号を紐付けする
-                chara_dict = chara_set(ws2)[0]
-                space_list = chara_set(ws2)[1]
+                chara_dict, space_list = chara_set(ws2)
                     
                 #色付けをする
                 coloring(space_list, chara_dict, space_position, ws1, ws2)                                             
@@ -461,22 +477,23 @@ def circle_name_check(pattern, text, profile): #引数(パターン、マッチ�
 def chara_set(ws2):
     chara_list = [] #キャラクター一覧格納用
     space_list = [] #サークルリスト格納用
-    for i,chara in enumerate(list(ws2.rows)):
+    for i,chara in enumerate(ws2.rows):
         if i == 0:                          #初めの"Charater"というラベルを除外
             continue
         
         else:
-            ws2_cells = list(chara)
             #サークル情報の格納
-            space_list.append(Circle(ws2_cells[0], 
-                                     ws2_cells[1],
-                                     ws2_cells[2],
-                                     ws2_cells[3],
-                                     ws2_cells[4],
-                                     ws2_cells[5],))
+            space_list.append(Circle(chara[0].value, 
+                                     chara[1].value,
+                                     chara[2].value,
+                                     chara[3].value,
+                                     chara[4].value,
+                                     chara[5].value,))
         
-            if ws2_cells[4] not in chara_list:
-                chara_list.append(ws2_cells[4])  #リストからキャラクター一覧の取得
+            if chara[4].value not in chara_list:
+                chara_list.append(chara[4].value)  #リストからキャラクター一覧の取得
+    
+    logging.info(chara_list)
     
     #キャラクターごとに色を決定        
     chara_dict = {}
@@ -517,7 +534,7 @@ def coloring(space_list, chara_dict, space_position,  ws1, ws2): #space_list:サ
     for i, rows in enumerate(ws2):
         if i == 0: #1行目
             continue
-        fill = op.styles.PatternFill(patternType='solid', fgColor = chara_dict[rows.cell.velue]) #色付け用フォーマット
+        fill = op.styles.PatternFill(patternType='solid', fgColor = chara_dict[rows[4].value]) #色付け用フォーマット
         for cell in rows:
             cell.fill = fill #行の該当するセルを全て色付け
     
@@ -527,14 +544,14 @@ def coloring(space_list, chara_dict, space_position,  ws1, ws2): #space_list:サ
         
         circle_num = re.sub("[ab]", "", circle.num) # abの削除
         if "b" in circle_num:   #スペース番号に"b"が含まれているとき
-            ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1] + 1).fill = fill                   #色付け
-            add_comment(ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1] + 1), circle)          #コメント追加
-            ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1] + 1).hyperlink = circle.source_url #ハイパーリンク
+            ws1.cell(row = space_position[circle_num][0], column = space_position[circle_num][1] + 1).fill = fill                   #色付け
+            add_comment(ws1.cell(row = space_position[circle_num][0], column = space_position[circle_num][1] + 1), circle)          #コメント追加
+            ws1.cell(row = space_position[circle_num][0], column = space_position[circle_num][1] + 1).hyperlink = circle.source_url #ハイパーリンク
             
         else:   #スペース番号に"a"が含まれているとき または 机番号の区別がないとき
-            ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1]).fill = fill                       #色付け
-            add_comment(ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1] + 1), circle)          #コメント追加
-            ws1.cell(row = space_position[circle.num][0], column = space_position[circle.num][1]).hyperlink = circle.source_url     #ハイパーリンク
+            ws1.cell(row = space_position[circle_num][0], column = space_position[circle_num][1]).fill = fill                       #色付け
+            add_comment(ws1.cell(row = space_position[circle_num][0], column = space_position[circle_num][1]), circle)              #コメント追加
+            ws1.cell(row = space_position[circle_num][0], column = space_position[circle_num][1]).hyperlink = circle.source_url     #ハイパーリンク
 
 #----* コメント付与 *----
 def add_comment(cell, circleinfo): 

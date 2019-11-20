@@ -503,7 +503,7 @@ def chara_set(ws2):
     #キャラクターごとに色を決定        
     chara_dict = {}
     for j,chara_name in enumerate(chara_list):
-        chara_dict[chara_name] = color[i % len(color)]
+        chara_dict[chara_name] = color[j % len(color)]
 
     return chara_dict, space_list
 

@@ -60,9 +60,9 @@ class Circle():
 
 #*--------初期設定--------*
 # Consumer Key
-#CONSUMER_KEY = os.environ["CONSUMER_KEY"]
+CONSUMER_KEY = os.environ["CONSUMER_KEY"]
 # Consumer Secret
-#CONSUMER_SECRET =os.environ["CONSUMER_SECRET"]
+CONSUMER_SECRET =os.environ["CONSUMER_SECRET"]
 # Callback URL (認証後リダイレクトされるURL)
 #CALLBACK_URL = 'http://127.0.0.1:5000'
 CALLBACK_URL = 'https://circle-check-app.herokuapp.com/' # Heroku上
@@ -80,11 +80,7 @@ ALLOWED_EXTENSIONS = set(['xlsx'])
 # flaskの起動
 app = Flask(__name__)
 # flask の session を使うにはkeyを設定する必要がある．
-#app.secret_key = os.environ["SECRET_KEY"]
-
-app.secret_key='AHT90udsfHsdfKiHGD9dsfkjhewr'
-CONSUMER_KEY='bXsDEot4zEKY1DHnL8ovnQ87H'
-CONSUMER_SECRET='tJaJkBFIaYQgbHThwT2wluUUdIu0ONURaJQhQBsBir3uThNL4u'
+app.secret_key = os.environ["SECRET_KEY"]
 
 # フォルダディレクトリを保存
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER

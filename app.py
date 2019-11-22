@@ -33,7 +33,6 @@ CONSUMER_KEY = os.environ["CONSUMER_KEY"]
 # Consumer Secret
 CONSUMER_SECRET =os.environ["CONSUMER_SECRET"]
 # Callback URL (認証後リダイレクトされるURL)
-#CALLBACK_URL = 'https://circle-check-app.herokuapp.com/' # Heroku上
 CALLBACK_URL = 'https://circle-check-app.azurewebsites.net' # azure上
 # ファイルをダウンロードした際、クライアント側で適切にファイルを処理できるようにmimetypeを定義
 # mimetype:ファイル形式をサーバーに認識させるための識別子

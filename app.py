@@ -277,7 +277,6 @@ def twitter_auth(): # 認証
         return render_template("oauth_error.html", error = 0) #認証時エラーページ
     
     logging.info("---- API認証終了 ----")
-    app.config["AUTH"] = auth #OAuthHandlerの保存
     return redirect(redirect_url) # redirect_urlのURLにリダイレクトする
 
 #-------- テンプレートファイルダウンロードページ1 --------

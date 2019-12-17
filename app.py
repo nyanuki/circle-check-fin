@@ -27,6 +27,37 @@ color = {0:"ff7f7f", 1:"ff7fbf", 2:"ff7fff", 3:"bf7fff", 4:"7f7fff",
          20:"ffff00", 21:"ff7f00", 22:"fcc800", 23:"9cbb1c", 24:"00a960"}
 # 色参考https://www.colordic.org/p/
 
+# 抽出元ツイートインスタンス
+class Source_Tweet():
+    def __init__(self, user_screen_name, user_name, text, chara, source_url, description):
+        # ユーザーID、ユーザー名、ツイート本文テキスト、キャラクター名、抽出元URL、プロフィールテキスト
+        self.user_screen_name = user_screen_name
+        self.user_name = user_name
+        self.text = text
+        self.chara = chara
+        self.source_url = source_url
+        self.description = description
+
+# サークルインスタンス
+class Circle():
+    def __init__(self, num, user_name, user_screen_name, circle_name, chara, source_url):
+        # スペース番号、ユーザー名、ユーザーID、サークル名、キャラクター名、抽出元URL
+        self.num = num
+        self.user_name = user_name
+        self.user_screen_name = user_screen_name
+        self.circle_name = circle_name
+        self.chara = chara
+        self.source_url = source_url
+    
+    def return_list(self):
+        # 全ての要素をリストにして返す
+        return [self.num,
+                self.user_name,
+                self.user_screen_name,
+                self.circle_name,
+                self.chara,
+                self.source_url]
+
 #*--------初期設定--------*
 # Consumer Key
 CONSUMER_KEY = os.environ["CONSUMER_KEY"]
@@ -105,16 +136,16 @@ def index(): # rootページ読み込み時にindex()を実行する
                     try:
                         for status in api.search(q=query, lang='ja', result_type='recent', count=100, tweet_mode='extended'): 
                             #q:検索ワード("-RT"をつけることでRTを省ける) count:取得件数　lang:言語(日本語なら"ja") result_type:取得するツイート (recent時系列で取得) 
-                            text = re.sub(r"(https?|ftp)(:\/\/[-_\.!~*\'()a-zA-Z0-9;\/?:\@&=\+\$,%#]+)", "" ,status.full_text) #URL部分を削除
+                            text = re.sub(r"(https?|ftp)(:\/\/[-_\.!~*\'()a-zA-Z0-9;\/?:\@&=\+\$,%#]+)", "" , status.full_text) #URL部分を削除
                             #tweet:[ユーザーID, ユーザー名, ツイート本文, キャラクター名, ツイートURL, プロフ]
-                            tweet.append([status.user.screen_name, 
-                                          status.user.name, 
-                                          text, 
-                                          chara, 
-                                          "https://twitter.com/"+ status.user.screen_name.strip("@") + "/status/" + str(status.id),
-                                          status.user.description])
+                            tweet.append(Source_Tweet(status.user.screen_name, 
+                                                      status.user.name, 
+                                                      text, 
+                                                      chara, 
+                                                      "https://twitter.com/"+ status.user.screen_name.strip("@") + "/status/" + str(status.id),
+                                                      status.user.description))
                             tweet_id.append(status.id) #ツイートIDの取得 api.search.id
-                            #ユーザーごとに2次元配列で格納　.user.screen_name:UserID .user.name:Username .text:Tweet user.description:プロフィール
+                            #ユーザーごとにインスタンスで格納　.user.screen_name:UserID .user.name:Username .text:Tweet user.description:プロフィール
                         
                         if len(tweet_id) == 0:  #もしツイートがなかったら(これでmax_idを指定するとエラーになる)
                             continue            #次のキャラクターへ
@@ -126,8 +157,12 @@ def index(): # rootページ読み込み時にindex()を実行する
                                     #max_id - 指定されたID以下の（つまり、古い）IDを持つステータスのみを返す
                                     #リスト名[-1] でリストの一番最後の要素を取得 
                                     text = re.sub(r"(https?|ftp)(:\/\/[-_\.!~*\'()a-zA-Z0-9;\/?:\@&=\+\$,%#]+)", "" ,status.full_text) #URL部分を削除
-                                    tweet.append(["@"+status.user.screen_name, status.user.name, text, chara, "https://twitter.com/"+ status.user.screen_name.strip("@") + "/status/" + str(status.id), status.user.description])
-                                    tweet_id.append(status.id)
+                                    tweet.append(Source_Tweet(status.user.screen_name, 
+                                                              status.user.name, 
+                                                              text, 
+                                                              chara, 
+                                                              "https://twitter.com/"+ status.user.screen_name.strip("@") + "/status/" + str(status.id),
+                                                              status.user.description))
                                     
                     #API制限時処理
                     except tweepy.TweepError:
@@ -176,14 +211,14 @@ def index(): # rootページ読み込み時にindex()を実行する
                 No_list = [] #修正後のサークルリスト
                 #マップ上のスペース番号のみを残す
                 for i, num in enumerate(No):
-                    if re.sub("[ab]", "", num[0]) in map_No: #マップ上に番号が存在したら
+                    if re.sub("[ab]", "", num.num) in map_No: #マップ上に番号が存在したら
                         No_list.append(No[i])
                 
                 #サークルリストをシートに追加
                 for i, row in enumerate(No_list):
-                    ws2.append(row)                                                             #サークルリストの追加
-                    ws2.cell(row = i+2, column = 3).hyperlink = "https://twitter.com/" + row[2] #ハイパーリンクの設定(ユーザーURL)
-                    ws2.cell(row = i+2, column = 6).hyperlink = row[5]                          #ハイパーリンクの設定(抽出元URL)
+                    ws2.append(row.return_list())                                                              #サークルリストの追加
+                    ws2.cell(row = i+2, column = 3).hyperlink = "https://twitter.com/" + row.user_screen_name #ハイパーリンクの設定(ユーザーURL)
+                    ws2.cell(row = i+2, column = 6).hyperlink = row.source_url                                #ハイパーリンクの設定(抽出元URL)
                         
                     
                 #シートの書式設定
@@ -357,21 +392,21 @@ def download(filename):
 def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイートリスト,　番号パターン, サークル名パターン,　サークル情報リスト)
     uniq_no = [] #被りチェック用
     for twe in tweet:
-        circle_num1 = num_pattern.findall(twe[1])                           #取得ツイートのユーザー名からスペース番号を抽出
-        circle_num2 = num_pattern.findall(twe[2])                           #取得ツイートからスペース番号を抽出
-        circle_name = circle_name_check(circle_pattern, twe[2],twe[5])      #取得ツイートのテキストまたはプロフィールからサークル名を抽出
+        circle_num1 = num_pattern.findall(twe.user_name)                           #取得ツイートのユーザー名からスペース番号を抽出
+        circle_num2 = num_pattern.findall(twe.text)                           #取得ツイートからスペース番号を抽出
+        circle_name = circle_name_check(circle_pattern, twe.text, twe.description)      #取得ツイートのテキストまたはプロフィールからサークル名を抽出
         
         if len(circle_num1) == 0:                                   #ユーザー名から検出されなかったとき
             if len(circle_num2) == 1:                               #取得ツイートから1つだけ検出
                 if circle_num2[0].replace('-','') not in uniq_no:   #被りがなければ
                     uniq_no.append(circle_num2[0].replace('-',''))  #被りチェックリストに追加
                     #サークル情報を追加(スペース番号, ユーザー名, ユーザーID, サークル名, キャラクター名, 抽出元URL)
-                    No.append([circle_num2[0].replace('-',''),
-                               twe[1],
-                               twe[0],
+                    No.append(Circle(circle_num2[0].replace('-',''),
+                               twe.user_name,
+                               twe.user_screen_name,
                                circle_name,
-                               twe[3],
-                               twe[4]])
+                               twe.chara,
+                               twe.source_url))
                     
             else:                                                   #取得ツイートから複数検出または検出されなかったとき
                 continue                                            #抽出不可、次のツイートへ
@@ -380,7 +415,12 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
             if len(circle_num2) == 0:                               #取得ツイートから検出されなかったとき
                 if circle_num1[0].replace('-','') not in uniq_no:   #被りがなければ
                     uniq_no.append(circle_num1[0].replace('-',''))  #被りチェックリストに追加
-                    No.append([circle_num1[0].replace('-',''), twe[1], twe[0], circle_name, twe[3], twe[4]])
+                    No.append(Circle(circle_num1[0].replace('-',''), 
+                               twe.user_name,
+                               twe.user_screen_name,
+                               circle_name,
+                               twe.chara,
+                               twe.source_url))
                     
             else:                                                           #取得ツイートから複数検出または1つのみ検出
                 for num1 in circle_num1:                                    #ユーザー名のスペース番号
@@ -388,7 +428,12 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
                         if(num1.replace('-','') == num2.replace('-','')):   #ユーザー名とツイート本文のスペース番号を照合する(照合時、ハイフンを削除する)
                             if num1.replace('-','') not in uniq_no:         #被りがなければ
                                 uniq_no.append(num1.replace('-',''))        #被りチェックリストに追加
-                                No.append([num1.replace('-',''), twe[1], twe[0], circle_name, twe[3], twe[4]])   #一致する場合、リストに追加                    
+                                No.append(Circle(num1.replace('-',''),
+                               twe.user_name,
+                               twe.user_screen_name,
+                               circle_name,
+                               twe.chara,
+                               twe.source_url))   #一致する場合、リストに追加                    
                                 
         else:                                              #ユーザー名から複数検出
             if len(circle_num2) == 0:                      #取得ツイートから検出されなかったとき
@@ -400,7 +445,11 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
                         if(num1.replace('-','') == num2.replace('-','')):   #ユーザー名とツイート本文のスペース番号を照合する(照合時、ハイフンを削除する)
                             if num1.replace('-','') not in uniq_no:         #被りがなければ
                                 uniq_no.append(num1.replace('-',''))        #被りチェックリストに追加
-                                No.append([num1.replace('-',''), twe[1], twe[0], circle_name, twe[3], twe[4]])   #一致する場合、リストに追加
+                                No.append(Circle(num1.replace('-',''),twe.user_name,
+                               twe.user_screen_name,
+                               circle_name,
+                               twe.chara,
+                               twe.source_url))   #一致する場合、リストに追加
     
     return No
 

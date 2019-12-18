@@ -392,9 +392,9 @@ def download(filename):
 def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイートリスト,　番号パターン, サークル名パターン,　サークル情報リスト)
     uniq_no = [] #被りチェック用
     for twe in tweet:
-        circle_num1 = num_pattern.findall(twe.user_name)                           #取得ツイートのユーザー名からスペース番号を抽出
-        circle_num2 = num_pattern.findall(twe.text)                           #取得ツイートからスペース番号を抽出
-        circle_name = circle_name_check(circle_pattern, twe.text, twe.description)      #取得ツイートのテキストまたはプロフィールからサークル名を抽出
+        circle_num1 = num_pattern.findall(str(twe.user_name))                           #取得ツイートのユーザー名からスペース番号を抽出
+        circle_num2 = num_pattern.findall(str(twe.text))                           #取得ツイートからスペース番号を抽出
+        circle_name = circle_name_check(circle_pattern, str(twe.text), str(twe.description))      #取得ツイートのテキストまたはプロフィールからサークル名を抽出
         
         if len(circle_num1) == 0:                                   #ユーザー名から検出されなかったとき
             if len(circle_num2) == 1:                               #取得ツイートから1つだけ検出

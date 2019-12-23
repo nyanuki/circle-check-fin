@@ -170,7 +170,7 @@ def index(): # rootページ読み込み時にindex()を実行する
                 
                 
                 #正規表現のコンパイル
-                num_pattern = re.compile("[a-zA-Zぁ-んァ-ヶ]-?[0-9]{2}[ab]?")             #スペース番号正規表現コンパイル
+                num_pattern = re.compile("[a-zA-Zぁ-んァ-ヶ]-?[0-9]{2}[aａbｂ]?")             #スペース番号正規表現コンパイル
                 circle_pattern = re.compile("サークル名?[「【『：:][\w\W]+?[」】』\n]")         #サークル名正規表現コンパイル
                 
                 #番号格納用
@@ -401,7 +401,7 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
                 if circle_num2[0].replace('-','') not in uniq_no:   #被りがなければ
                     uniq_no.append(circle_num2[0].replace('-',''))  #被りチェックリストに追加
                     #サークル情報を追加(スペース番号, ユーザー名, ユーザーID, サークル名, キャラクター名, 抽出元URL)
-                    No.append(Circle(circle_num2[0].replace('-',''),
+                    No.append(Circle(circle_num2[0].replace('-','').replace('ａ','a').replace('ｂ','b'),
                                twe.user_name,
                                twe.user_screen_name,
                                circle_name,
@@ -415,7 +415,7 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
             if len(circle_num2) == 0:                               #取得ツイートから検出されなかったとき
                 if circle_num1[0].replace('-','') not in uniq_no:   #被りがなければ
                     uniq_no.append(circle_num1[0].replace('-',''))  #被りチェックリストに追加
-                    No.append(Circle(circle_num1[0].replace('-',''), 
+                    No.append(Circle(circle_num1[0].replace('-','').replace('ａ','a').replace('ｂ','b'), 
                                twe.user_name,
                                twe.user_screen_name,
                                circle_name,
@@ -428,7 +428,7 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
                         if(num1.replace('-','') == num2.replace('-','')):   #ユーザー名とツイート本文のスペース番号を照合する(照合時、ハイフンを削除する)
                             if num1.replace('-','') not in uniq_no:         #被りがなければ
                                 uniq_no.append(num1.replace('-',''))        #被りチェックリストに追加
-                                No.append(Circle(num1.replace('-',''),
+                                No.append(Circle(num1.replace('-','').replace('ａ','a').replace('ｂ','b'),
                                twe.user_name,
                                twe.user_screen_name,
                                circle_name,
@@ -445,7 +445,8 @@ def pattern_match(tweet, num_pattern, circle_pattern, No): #引数(ツイート�
                         if(num1.replace('-','') == num2.replace('-','')):   #ユーザー名とツイート本文のスペース番号を照合する(照合時、ハイフンを削除する)
                             if num1.replace('-','') not in uniq_no:         #被りがなければ
                                 uniq_no.append(num1.replace('-',''))        #被りチェックリストに追加
-                                No.append(Circle(num1.replace('-',''),twe.user_name,
+                                No.append(Circle(num1.replace('-','').replace('ａ','a').replace('ｂ','b'),
+                                twe.user_name,
                                twe.user_screen_name,
                                circle_name,
                                twe.chara,
